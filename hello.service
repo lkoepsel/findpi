@@ -1,0 +1,20 @@
+[Unit]
+Description=Ping a known server (hello_ip.txt) with hostname and IP address (3 times per boot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/python /usr/bin/hello.py
+ExecStopPost=/bin/bash -c "sudo mount -o remount,rw /boot/firmware && sudo cp ~/hello.log /boot/firmware/ "
+Restart=no
+StandardOutput=journal
+StandardError=journal
+
+# Define custom exit code messages
+SuccessExitStatus=0
+ExitStatusText=10:MOUNT_FAILURE 11:LOGGING_PERMISSION_ERROR 12:LOGGING_SETUP_ERROR 20:FILE_READ_ERROR 21:IP_FILE_NOT_FOUND 30:CONNECTION_ERROR 31:REQUEST_TIMEOUT 32:HTTP_ERROR 33:REQUEST_ERROR 99:UNEXPECTED_ERROR
+
+[Install]
+WantedBy=multi-user.target

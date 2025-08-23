@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" type="text/css" href="/static/mvp.css">
+    <title>Hello Hostnames</title>
+  </head>
+  <body>
+    <main>
+      <h1>Hello Hostnames</h1>
+      <h2>Hostnames and IP Addresses</h2>
+      <h3>Instructions</h3>
+      <ol>
+        <li>Find your hostname below</li>
+        <li>Get the corresponding <em>IP Address</em></li>
+        <li>In your terminal window, enter <em>ssh pi10C@IP Address</em></li>
+      </ol>
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Hostname</th>
+            <th scope="col">IP Address</th>
+            <th scope="col">Last Update</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for data in received_data %}
+        <tr>
+          <th scope="row">{{ data.text }}</th>
+          <td>{{ data.ip }}</td>
+          <td>{{ data.timestamp }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      <p><strong>Example:</strong> <em>ssh pi10C@172.2.24.210</em></p>
+    </main>
+  </body>
+</html>
