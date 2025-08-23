@@ -1,109 +1,16 @@
 # findpi - A Raspberry Pi Identity Solution
 
-## Recent Changes (July 7, 2025)
-
-### Service Execution Limit Update - Final Implementation
-
-The findpi service has been modified to prevent excessive log file growth and resource usage while ensuring it properly executes 3 attempts per boot cycle.
-
-**Problem Solved:**
-- The findpi service was running continuously every 10 seconds, creating a significantly large log file
-- Service would restart indefinitely on connection failures, consuming system resources
-- Initial fix only ran once per boot instead of the intended 3 times
-
-**Final Solution - Changes Made:**
-
-1. **findpi.py Script Updates:**
-   - **Complete rewrite of execution logic**: Service now performs all 3 attempts within a single execution
-   - **Timing**: Makes 3 attempts with 10-second delays between attempts (total runtime ~20 seconds)
-   - **Completion tracking**: Uses `/tmp/findpi_completed` file to prevent multiple executions per boot
-   - **Enhanced logging**: Each attempt clearly labeled as "Starting attempt #1 of 3", etc.
-   - **Error handling**: All connection errors logged but don't cause service restarts
-   - **Summary reporting**: Final log shows "Completed all 3 attempts. Successful attempts: X/3"
-
-2. **findpi.service Configuration Updates:**
-   - **Service type**: Changed to `Type=simple` with `Restart=no` 
-   - **Single execution**: Service runs once per boot, making all 3 attempts internally
-   - **No auto-restart**: Removed restart policies to prevent continuous execution
-   - **Maintained functionality**: All original features preserved (log copying, error codes, etc.)
-
-**Current Behavior:**
-- ✅ Service executes exactly **3 attempts per boot cycle**
-- ✅ **Timing**: Attempt 1 (immediate) → 10s wait → Attempt 2 → 10s wait → Attempt 3 → Complete
-- ✅ **Duration**: Service runs for approximately 20 seconds total
-- ✅ **Prevention**: Won't run again until system reboot
-- ✅ **Logging**: Clear attempt numbering and completion status
-- ✅ **Manual restart**: Can be manually started but respects completion limit
-
-**Implementation Details:**
-```
-Service Start → Attempt #1 → [10s delay] → Attempt #2 → [10s delay] → Attempt #3 → Mark Complete → Exit
-```
-
-**Backward Compatibility:**
-- All original functionality preserved (IP detection, hostname sending, log copying)
-- Same exit codes and error handling for system monitoring  
-- No changes to server-side requirements
-- Compatible with existing `findpi_ip.txt` configuration
-
-**Files Modified:**
-- `findpi.py`: Complete rewrite of main execution logic
-- `findpi.service`: Updated service configuration for proper 3-attempt execution
-
----
-
-**Formerly know as rasp-mDNS**, *yeah, its clear why I changed the name.*
-
-Recently, the Raspberry Pi Foundation released [Raspberry Pi Connect](https://www.raspberrypi.com/documentation/services/connect.html), which "*provides secure access to your Raspberry Pi from anywhere in the world.*" That's great, except for a couple of issues:
-* You need to register. I understand why, however, its a burdensome step to solve such a simple problem.
-* Its a *world-wide* solution. I was looking for a *local* solution, one which doesn't **require** connecting to the internet.
-* And the deal-killer, it requires the full desktop install. If I need to connect to my Raspberry Pi, more often than not, its in a headless configuration. Headless and desktop are somewhat *antithetical*. 
-
-**Update: July 4th, 2024**
-Raspberry Pi has added the ability to perform this on a CLI OS, such as Bookworm (Lite), however, it still seems to be a bit much.
-**Update: July 4th, 2024**
-Raspberry Pi has added the ability to perform this on a CLI OS, such as Bookworm (Lite), however, it still seems to be a bit much.
+**Formerly know as hello and rasp-mDNS**
 
 ## Description
 This is a solution for identifying newly programmed, headless *Raspberry Pi (RPi)*'s on a large network. In large networks (*ex: community college*), the wireless network has a significant issue. As network is quite large, it can be difficult to readily identify a *RPi* which has recently joined the network, therefore making it almost impossible to connect to the *RPi*.
 
-## Easy Solution (*macOS* or *Linux*)
-There are two, dead-simple, solutions which work well in **small networks** and on *macOS* or *Linux*. *Windows* unfortunately, doesn't do *Bonjour*.:
-
-1. Use the *multicast DNS* service to attempt to connect. This uses the existing solution of [*avahi aka zeroconfig or Bonjour*](https://www.raspberrypi.com/documentation/computers/remote-access.html#resolving-raspberrypi-local-with-mdns) to connect with the *RPi*. It works quite well and is the best solution.
-There are two, dead-simple, solutions which work well in **small networks** and on *macOS* or *Linux*. *Windows* unfortunately, doesn't do *Bonjour*.:
-
-1. Use the *multicast DNS* service to attempt to connect. This uses the existing solution of [*avahi aka zeroconfig or Bonjour*](https://www.raspberrypi.com/documentation/computers/remote-access.html#resolving-raspberrypi-local-with-mdns) to connect with the *RPi*. It works quite well and is the best solution.
-
-Using the username and hostname you used in programming the SD card with the *Pi Imager* application, try:
-```bash
-ssh username@hostname.local
-```
-In large networks this might take a while or not work at all. Worse yet, it doesn't always work. And when it doesn't work, there needs to be a remediation step.
-
-2. To mitigate this issue, try this command: (*replace hostname with the name you provided when programming the SD card*). This command may work faster than attempting to login immediately.
-```bash
-dns-sd -G v4 hostname.local
-```
-Example Output:
-```bash
-DATE: ---Tue 13 Feb 2024---
-16:32:22.348  ...STARTING...
-Timestamp     A/R  Flags IF  Hostname      Address     TTL
-16:32:51.715  Add  2.    17  pisan.local.  192.168.1.  120
-```
-Notice that the IP address is provided in the second line of *192.168.1.6*
-
-```bash
-# Connect to the board using the IP address
-ssh 192.168.1.6
-# after a warning regarding the "...authenticity of host..." and a few seconds, you will see the CLI prompt.
-```
-
-And the second step might not work, either. Leaving you with a *RPi*, which is on the network, however, you are unable to connect to it.
+Recently, the Raspberry Pi Foundation released [Raspberry Pi Connect](https://www.raspberrypi.com/documentation/services/connect.html), which "*provides secure access to your Raspberry Pi from anywhere in the world.*" That's great, except for a couple of issues:
+* You need to register. I understand why, however, its a burdensome step to solve such a simple problem.
+* Its a *world-wide* solution. I was looking for a *local* solution, one which doesn't **require** connecting to the internet.
 
 ## The *findpi* Solution - Run a service on Raspberry Pi
-A third all-encompassing solution is to implement an auto-connecting application on startup, **on the remote *RPi***. This application will ping a local server (your PC or another *LAN-based* host *RPi*) with its host name and IP address. This ensures you have ready access to the remote *RPi* without having to go through determining its IP address. 
+A solution is to implement an auto-connecting application on startup, **on the remote *RPi***. This application will ping a local server (your PC or another *LAN-based* host *RPi*) with its host name and IP address. This ensures you have ready access to the remote *RPi* without having to go through determining its IP address. 
 
 This solution will work due to the ability to save your server's IP address on the *RPi*, prior to boot. This means the *RPi* is trying to find you, instead of vice-versa. 
 
