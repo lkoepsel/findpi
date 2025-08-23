@@ -19,7 +19,7 @@ def setup_logging():
 
         # set logging to DEBUG, if messages aren't seen in log file
         logging.basicConfig(
-            filename="~/hello.log",
+            filename="/tmp/findpi.log",
             encoding="utf-8",
             format="%(asctime)s %(filename)s:%(levelname)s: %(message)s",
             level=logging.DEBUG,
@@ -35,7 +35,7 @@ def setup_logging():
 
 
 def find_ip_file():
-    IP_file = "hello_ip.txt"  # Name of the file containing the IP address
+    IP_file = "findpi_ip.txt"  # Name of the file containing the IP address
     # List of directories to search
     dirs_to_check = ["/boot", "/boot/firmware"]
 
@@ -144,11 +144,11 @@ def main():
         # Find IP address
         ip = find_ip_file()
 
-        # Unmount if we mounted
-        if hadtomount:
-            umount_result = os.system("sudo umount /boot/firmware")
-            if umount_result != 0:
-                logging.warning("Failed to unmount /boot/firmware")
+        # Unmount if we mounted TODO: Remove after tested
+        # if hadtomount:
+        #     umount_result = os.system("sudo umount /boot/firmware")
+        #     if umount_result != 0:
+        #         logging.warning("Failed to unmount /boot/firmware")
 
         # Make 3 attempts with delays
         success_count = 0
