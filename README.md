@@ -1,27 +1,27 @@
-# hello - A Raspberry Pi Identity Solution
+# findpi - A Raspberry Pi Identity Solution
 
 ## Recent Changes (July 7, 2025)
 
 ### Service Execution Limit Update - Final Implementation
 
-The hello service has been modified to prevent excessive log file growth and resource usage while ensuring it properly executes 3 attempts per boot cycle.
+The findpi service has been modified to prevent excessive log file growth and resource usage while ensuring it properly executes 3 attempts per boot cycle.
 
 **Problem Solved:**
-- The hello service was running continuously every 10 seconds, creating a significantly large log file
+- The findpi service was running continuously every 10 seconds, creating a significantly large log file
 - Service would restart indefinitely on connection failures, consuming system resources
 - Initial fix only ran once per boot instead of the intended 3 times
 
 **Final Solution - Changes Made:**
 
-1. **hello.py Script Updates:**
+1. **findpi.py Script Updates:**
    - **Complete rewrite of execution logic**: Service now performs all 3 attempts within a single execution
    - **Timing**: Makes 3 attempts with 10-second delays between attempts (total runtime ~20 seconds)
-   - **Completion tracking**: Uses `/tmp/hello_completed` file to prevent multiple executions per boot
+   - **Completion tracking**: Uses `/tmp/findpi_completed` file to prevent multiple executions per boot
    - **Enhanced logging**: Each attempt clearly labeled as "Starting attempt #1 of 3", etc.
    - **Error handling**: All connection errors logged but don't cause service restarts
    - **Summary reporting**: Final log shows "Completed all 3 attempts. Successful attempts: X/3"
 
-2. **hello.service Configuration Updates:**
+2. **findpi.service Configuration Updates:**
    - **Service type**: Changed to `Type=simple` with `Restart=no` 
    - **Single execution**: Service runs once per boot, making all 3 attempts internally
    - **No auto-restart**: Removed restart policies to prevent continuous execution
@@ -44,11 +44,11 @@ Service Start → Attempt #1 → [10s delay] → Attempt #2 → [10s delay] → 
 - All original functionality preserved (IP detection, hostname sending, log copying)
 - Same exit codes and error handling for system monitoring  
 - No changes to server-side requirements
-- Compatible with existing `hello_ip.txt` configuration
+- Compatible with existing `findpi_ip.txt` configuration
 
 **Files Modified:**
-- `hello.py`: Complete rewrite of main execution logic
-- `hello.service`: Updated service configuration for proper 3-attempt execution
+- `findpi.py`: Complete rewrite of main execution logic
+- `findpi.service`: Updated service configuration for proper 3-attempt execution
 
 ---
 
@@ -102,7 +102,7 @@ ssh 192.168.1.6
 
 And the second step might not work, either. Leaving you with a *RPi*, which is on the network, however, you are unable to connect to it.
 
-## The *hello* Solution - Run a service on Raspberry Pi
+## The *findpi* Solution - Run a service on Raspberry Pi
 A third all-encompassing solution is to implement an auto-connecting application on startup, **on the remote *RPi***. This application will ping a local server (your PC or another *LAN-based* host *RPi*) with its host name and IP address. This ensures you have ready access to the remote *RPi* without having to go through determining its IP address. 
 
 This solution will work due to the ability to save your server's IP address on the *RPi*, prior to boot. This means the *RPi* is trying to find you, instead of vice-versa. 
@@ -110,7 +110,7 @@ This solution will work due to the ability to save your server's IP address on t
 Once implemented, the steps to connect in a new network are:
 1. Determine the IP address of your host system.
 2. Using any platform, *Windows*, *macOS* or *Linux*, enter the IP address into a specific file on the *RPi* SD card.
-3. Place the SD card in the RPi and power it up. Start the hello_server application on your host system and wait for the *ping*.
+3. Place the SD card in the RPi and power it up. Start the findpi_server application on your host system and wait for the *ping*.
 
 ## Installation
 ### 1. Requirements
@@ -120,14 +120,14 @@ Once implemented, the steps to connect in a new network are:
 #### 1.2. Raspberry Pi (remote *RPi*)
 Raspberry Pi OS Bookworm (or later)
 
-### 2. Create a hello.service on the remote Raspberry Pi
+### 2. Create a findpi.service on the remote Raspberry Pi
 Create a startup application, which will ping a server by *IP address* and report **its own** host name and IP address.
 
-#### 2.1.. Create hello.py
-This is the program which executes as part of the *hello.service*. Open a Python file, then copy/paste contents below into file:
+#### 2.1.. Create findpi.py
+This is the program which executes as part of the *findpi.service*. Open a Python file, then copy/paste contents below into file:
 ```python
-# open a file named hello.py
-sudo nano /usr/bin/hello.py
+# open a file named findpi.py
+sudo nano /usr/bin/findpi.py
 ```
 Paste the following contents then Ctrl-S, to save and Ctrl-X to exit *nano*.
 ```python
@@ -152,7 +152,7 @@ def setup_logging():
 
         # set logging to DEBUG, if messages aren't seen in log file
         logging.basicConfig(
-            filename="~/hello.log",
+            filename="~/findpi.log",
             encoding="utf-8",
             format="%(asctime)s %(filename)s:%(levelname)s: %(message)s",
             level=logging.DEBUG,
@@ -168,7 +168,7 @@ def setup_logging():
 
 
 def find_ip_file():
-    IP_file = "hello_ip.txt"  # Name of the file containing the IP address
+    IP_file = "findpi_ip.txt"  # Name of the file containing the IP address
     # List of directories to search
     dirs_to_check = ["/boot", "/boot/firmware"]
 
@@ -195,7 +195,7 @@ def find_ip_file():
 
 def check_already_ran():
     """Check if we've already completed our 3 runs since boot"""
-    completed_file = "/tmp/hello_completed"
+    completed_file = "/tmp/findpi_completed"
     
     if os.path.exists(completed_file):
         logging.info("Service has already completed 3 runs since boot. Exiting.")
@@ -207,7 +207,7 @@ def check_already_ran():
 
 def mark_completed():
     """Mark that we've completed our 3 runs"""
-    completed_file = "/tmp/hello_completed"
+    completed_file = "/tmp/findpi_completed"
     try:
         with open(completed_file, "w") as f:
             f.write("completed")
@@ -216,8 +216,8 @@ def mark_completed():
         logging.error("Error marking completion: %s", str(e))
 
 
-def send_hello_request(ip, attempt_num):
-    """Send a single hello request"""
+def send_findpi_request(ip, attempt_num):
+    """Send a single findpi request"""
     try:
         # Get hostname and prepare request
         host_name = socket.gethostname()
@@ -270,7 +270,7 @@ def main():
         if check_already_ran():
             return 0
 
-        logging.info("Starting hello service - will attempt 3 times")
+        logging.info("Starting findpi service - will attempt 3 times")
 
         # Find IP address
         ip = find_ip_file()
@@ -286,7 +286,7 @@ def main():
         for attempt in range(1, 4):  # 1, 2, 3
             logging.info("Starting attempt #%d of 3", attempt)
             
-            success = send_hello_request(ip, attempt)
+            success = send_findpi_request(ip, attempt)
             if success:
                 success_count += 1
             
@@ -325,11 +325,11 @@ This step identifies your PC by IP address to the Raspberry Pi:
 
 ##### **On your PC or host *RPi***
 
-Run either server program (*simple_server.py or hello_server.py*), and it will report the host IP address.
+Run either server program (*simple_server.py or findpi_server.py*), and it will report the host IP address.
 ```bash
-python -m hello_server
+python -m findpi_server
 Cleaned 12 test entries from database
- * Serving Flask app 'hello_server'
+ * Serving Flask app 'findpi_server'
  * Debug mode: off
 WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
  * Running on all addresses (0.0.0.0)
@@ -345,10 +345,10 @@ The IP address to use, is the one **which is not 127.0.0.1**, in this case it is
 Open the file which will contain the IP address.
 
 ```bash
-sudo nano /boot/firmware/hello_ip.txt
+sudo nano /boot/firmware/findpi_ip.txt
 ```
 
-Enter the only the numeric IP address of your PC WITHOUT a return at the end of the line. The file *hello_ip.txt* will need to look like:
+Enter the only the numeric IP address of your PC WITHOUT a return at the end of the line. The file *findpi_ip.txt* will need to look like:
 
 ```bash
 192.168.1.49:5000
@@ -357,38 +357,38 @@ Enter the only the numeric IP address of your PC WITHOUT a return at the end of 
 
 **Note:** By storing the IP address in a file at */boot/firmware*, you may access the file on a macOS or Windows system. The *boot/firmware* folder shows up as a readable folder on either system called *bootfs*. This enables you to change the IP address on your PC then re-insert the SD card into the *RPi* to ping you at a new address. 
 
-There is also a file on *boot/firmware* called *hello.log*, which you can open with a text editor. It will contain the log entries for the *hello.service*. Use these entries if you are having difficulty getting a ping from the *RPi.*
+There is also a file on *boot/firmware* called *findpi.log*, which you can open with a text editor. It will contain the log entries for the *findpi.service*. Use these entries if you are having difficulty getting a ping from the *RPi.*
 
-Due to some permissions issues, the hello.log is created on both the /home/lkoepsel folder as /home/lkoepsel/hello.log and /boot/firmware/hello.log. The latter is copied from the former after the service runs. If your are attempting to read the file from a non-Raspberry Pi filesystem, then use /boot/firmware, otherwise, it might be easier to read the /home/lkoepsel version.
+Due to some permissions issues, the findpi.log is created on both the /home/lkoepsel folder as /home/lkoepsel/findpi.log and /boot/firmware/findpi.log. The latter is copied from the former after the service runs. If your are attempting to read the file from a non-Raspberry Pi filesystem, then use /boot/firmware, otherwise, it might be easier to read the /home/lkoepsel version.
 
-#### 2.3. Setup `systemd` unit file for hello.py service
-This will execute the *hello.py* app, after all other startup services have been executed on the RPi. 
+#### 2.3. Setup `systemd` unit file for findpi.py service
+This will execute the *findpi.py* app, after all other startup services have been executed on the RPi. 
 
-The service will log entries to */boot/firmware/hello.log* on the *RPi* or */bootfs/hello.log* when examining the SD card on a Mac/Windows system. Use it to determine any issues with the service.
+The service will log entries to */boot/firmware/findpi.log* on the *RPi* or */bootfs/findpi.log* when examining the SD card on a Mac/Windows system. Use it to determine any issues with the service.
 
-You may use the command `journalctl -b`, to see all boot messages of the *RPi*. or use `journalctl -b | grep hello`, to see all messages related to the service.
+You may use the command `journalctl -b`, to see all boot messages of the *RPi*. or use `journalctl -b | grep findpi`, to see all messages related to the service.
 
-You can use the space bar, to quickly go through screens of lines. Look for the word DEBUG as the *hello.py* application uses logging to print messages.
+You can use the space bar, to quickly go through screens of lines. Look for the word DEBUG as the *findpi.py* application uses logging to print messages.
 
-#### hello.service
+#### findpi.service
 Same as above, use nano to create file, copy/paste contents below then exit *nano*. 
 
 ```bash
-sudo nano /lib/systemd/system/hello.service
+sudo nano /lib/systemd/system/findpi.service
 ```
 
 Copy/paste contents below into the file:
 ```bash
 [Unit]
-Description=Ping a known server (hello_ip.txt) with hostname and IP address (3 times per boot)
+Description=Ping a known server (findpi_ip.txt) with hostname and IP address (3 times per boot)
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
 User=root
-ExecStart=/usr/bin/python /usr/bin/hello.py
-ExecStopPost=/bin/bash -c "sudo mount -o remount,rw /boot/firmware && sudo cp ~/hello.log /boot/firmware/ "
+ExecStart=/usr/bin/python /usr/bin/findpi.py
+ExecStopPost=/bin/bash -c "sudo mount -o remount,rw /boot/firmware && sudo cp ~/findpi.log /boot/firmware/ "
 Restart=no
 StandardOutput=journal
 StandardError=journal
@@ -405,38 +405,38 @@ Exit nano using *Ctrl-S* *Ctrl-X*
 
 #### 2.4 Run the following commands to create service and test it. 
 
-(*It helps to go to step 3 on your host system and confirm the hello message appears*):
+(*It helps to go to step 3 on your host system and confirm the findpi message appears*):
 
 ```bash
-sudo chmod 644 /lib/systemd/system/hello.service
+sudo chmod 644 /lib/systemd/system/findpi.service
 sudo systemctl daemon-reload
 # enable the service so that it runs on all subsequent systems boots
-sudo systemctl start hello.service
-sudo systemctl status hello.service
+sudo systemctl start findpi.service
+sudo systemctl status findpi.service
 ```
 
 #### 2.5 Enable the service to run on startup. (IMPORTANT)
 ```bash
-# if hello.service is running well, then enable to run on boot
-sudo systemctl enable hello.service
+# if findpi.service is running well, then enable to run on boot
+sudo systemctl enable findpi.service
 ```
 
 Additional commands which will be helpful, later once the service is running:
 ```bash
-# determine if the hello.service is running
-sudo systemctl status hello.service
+# determine if the findpi.service is running
+sudo systemctl status findpi.service
 
-# stop the hello.service, useful if you want to stop pinging server
-sudo systemctl stop hello.service
+# stop the findpi.service, useful if you want to stop pinging server
+sudo systemctl stop findpi.service
 
-# restart the hello.service, this will stop then start the service
-sudo systemctl restart hello.service
+# restart the findpi.service, this will stop then start the service
+sudo systemctl restart findpi.service
 ```
 ## Pick 3a or 3b below based on your needs.
 ### 3a. Simple Version (Good for single *RPi* connections)
-The simple version is useful for single *RPi* connections. Using a terminal program on your PC, use one tab to connect to your hello_server system (typically a host *RPi* or your PC) and the second tab to connect to the remote *RPi* in question. Once this repository is installed on the host *RPi*, follow the steps below:
+The simple version is useful for single *RPi* connections. Using a terminal program on your PC, use one tab to connect to your findpi_server system (typically a host *RPi* or your PC) and the second tab to connect to the remote *RPi* in question. Once this repository is installed on the host *RPi*, follow the steps below:
 1. Run `python -m simple_server` on the host *RPi*.
-2. Ensure the remote *RPi* has the hello.service running.
+2. Ensure the remote *RPi* has the findpi.service running.
 3. Reboot the remote *RPi*.
 
 In your host tab, once the remote *RPi* has been rebooted, you should see the following:
@@ -450,7 +450,7 @@ speedy
 
 The *running on* message is the IP address of the server *RPi* and the two lines with *speedy* are the hostname and IP address of the remote *RPi*.
 
-### 3b. Enhanced Version with Database: Run hello_server.py
+### 3b. Enhanced Version with Database: Run findpi_server.py
 This enhanced version stores all connections in a SQLite database and provides a web interface showing hostnames, IP addresses, and timestamps. It includes several improvements:
 
 - Persistent storage of connections in a SQLite database
@@ -463,10 +463,10 @@ This enhanced version stores all connections in a SQLite database and provides a
 The server can be started with the following options:
 ```bash
 # Normal start
-python hello_server.py
+python findpi_server.py
 
 # Reset database (clears all entries)
-python hello_server.py --reset
+python findpi_server.py --reset
 ```
 
 #### Features
@@ -490,8 +490,8 @@ python hello_server.py --reset
 #### Permissions Issue
 If you might get the following response:
 ```bash
-python3 -m hello_server
- * Serving Flask app 'hello_server'
+python3 -m findpi_server
+ * Serving Flask app 'findpi_server'
  * Debug mode: on
 Permission denied
 ```
@@ -512,8 +512,8 @@ source $HOME/.local/bin/env
 uv init
 # add flask
 uv add flask
-# run hello server
-uv run python hello_server.py
+# run findpi server
+uv run python findpi_server.py
 ```
 
 ##### Global Install 
@@ -529,7 +529,7 @@ error: externally-managed-environment
 
 I recommend you follow the advice on a Linux system and simply use *sudo apt install python3-flask*, to install *flask*.
  
-#### Example Output of hello_server.py:
+#### Example Output of findpi_server.py:
 ```bash
 python serverv2.py
  * Serving Flask app 'serverv2'
@@ -550,16 +550,16 @@ pisan
 192.168.1.76 - - [11/Feb/2024 06:46:41] "POST / HTTP/1.1" 200 -
 ```
 ## Initial instance
-There is a "chicken/egg" problem which can occur. If you can't initially connect to the *RPi*, how do you add the *hello* solution?
+There is a "chicken/egg" problem which can occur. If you can't initially connect to the *RPi*, how do you add the *findpi* solution?
 
 1. My immediate solution is to connect 1:1 with the Raspberry Pi, using an ethernet cable. This creates a two element network, my PC and my *RPi*. Then apply the steps above.
 2. Next up from that is to initially use the *RPi* in a small network, where its easier to connect.
-3. A third solution is to create an installable image which already contains the hello service. The make this the standard image you use, going forward. I'll detail the steps here:
-### Creating a Raspberry Pi OS hello image
+3. A third solution is to create an installable image which already contains the findpi service. The make this the standard image you use, going forward. I'll detail the steps here:
+### Creating a Raspberry Pi OS findpi image
 *You will need to do this in a small network or tightly coupled setup as described in solution #1 above.*
 
-1. Use Pi Imager to write the Raspberry Pi OS Lite (64-bit) to an SD card or USB drive. In the OS Customization tab, I've provided the hostname of *hello* and as I know it will be my image, I add my publickey on the Services tab.
-2. Once written, I put the SD card into my *RPi*, wait for it to boot sufficiently then login `ssh hello.local`.
+1. Use Pi Imager to write the Raspberry Pi OS Lite (64-bit) to an SD card or USB drive. In the OS Customization tab, I've provided the hostname of *findpi* and as I know it will be my image, I add my publickey on the Services tab.
+2. Once written, I put the SD card into my *RPi*, wait for it to boot sufficiently then login `ssh findpi.local`.
 3. I follow the steps above, and once I've confirmed the service works well. I create a new image:
 ### Saving, shrinking and sending an image
 I use a Linux laptop to perform the following steps. You can use your Raspberry Pi, however, you will need several smaller USB drives to hold the images prior to shrinking them.
@@ -575,10 +575,10 @@ wormhole send pibuildv3.img.gz
 ```
 
 ## Notes
-1. If the *RPi* isn't connecting, it might be a problem with startup. The service logs to */boot/firmware/hello.log*.  If you are unable to access the Pi, you may shutdown the *RPi* and examine the file via a Mac or Windows system. It will be at the root level of the */bootfs* folder.
-1. If you are able to access the Pi, you may `cat /boot/firmware/hello.log` or use `journalctl -b | grep hello` to examine the startup log for *hello.service* entries. 
-1. Implementing the optional solution, allows you to change networks and identify your PC's new IP address. Mount the SD card on your PC and edit /bootfs/hello_ip.txt, replacing the IP address with the new one. Put the SD card back into the *RPi*, run `python hello_server.py` then boot the *RPi*. It will ping your server with its new address.
+1. If the *RPi* isn't connecting, it might be a problem with startup. The service logs to */boot/firmware/findpi.log*.  If you are unable to access the Pi, you may shutdown the *RPi* and examine the file via a Mac or Windows system. It will be at the root level of the */bootfs* folder.
+1. If you are able to access the Pi, you may `cat /boot/firmware/findpi.log` or use `journalctl -b | grep findpi` to examine the startup log for *findpi.service* entries. 
+1. Implementing the optional solution, allows you to change networks and identify your PC's new IP address. Mount the SD card on your PC and edit /bootfs/findpi_ip.txt, replacing the IP address with the new one. Put the SD card back into the *RPi*, run `python findpi_server.py` then boot the *RPi*. It will ping your server with its new address.
 1. If you have multiple *RPI*'s and want to confirm which one is which, run `sudo du -h /`, which prints the size of all folders to the screen. This will make the green led light for several seconds.
 1. When using *RPi Imager* software, use *Shift-Ctrl-X* to bring up the options screen.
-1. Once you've confirmed you no longer need the *RPi* pinging the server, you can stop it with *sudo systemctl stop hello.service*. The service is designed to stop running once it has successfully pinged a server.
+1. Once you've confirmed you no longer need the *RPi* pinging the server, you can stop it with *sudo systemctl stop findpi.service*. The service is designed to stop running once it has successfully pinged a server.
 1. As Windows has difficulty using *Bonjour*, you could consider nmap as an alternative to identify *Raspberry Pi*'s on your network. [nmap Windows Version](https://nmap.org/download.html#windows)
