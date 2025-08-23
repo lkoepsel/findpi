@@ -62,7 +62,7 @@ def find_ip_file():
 
 def check_already_ran():
     """Check if we've already completed our 3 runs since boot"""
-    completed_file = "/tmp/hello_completed"
+    completed_file = "/tmp/findpi_completed"
 
     if os.path.exists(completed_file):
         logging.info("Service has already completed 3 runs since boot. Exiting.")
@@ -74,7 +74,7 @@ def check_already_ran():
 
 def mark_completed():
     """Mark that we've completed our 3 runs"""
-    completed_file = "/tmp/hello_completed"
+    completed_file = "/tmp/findpi_completed"
     try:
         with open(completed_file, "w") as f:
             f.write("completed")
@@ -83,8 +83,8 @@ def mark_completed():
         logging.error("Error marking completion: %s", str(e))
 
 
-def send_hello_request(ip, attempt_num):
-    """Send a single hello request"""
+def send_findpi_request(ip, attempt_num):
+    """Send a single findpi request"""
     try:
         # Get hostname and prepare request
         host_name = socket.gethostname()
@@ -139,7 +139,7 @@ def main():
         if check_already_ran():
             return 0
 
-        logging.info("Starting hello service - will attempt 3 times")
+        logging.info("Starting findpi service - will attempt 3 times")
 
         # Find IP address
         ip = find_ip_file()
@@ -155,7 +155,7 @@ def main():
         for attempt in range(1, 4):  # 1, 2, 3
             logging.info("Starting attempt #%d of 3", attempt)
 
-            success = send_hello_request(ip, attempt)
+            success = send_findpi_request(ip, attempt)
             if success:
                 success_count += 1
 

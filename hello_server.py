@@ -129,7 +129,7 @@ def server_error(e):
 
 if __name__ == "__main__":
     # Parse command line arguments
-    parser = argparse.ArgumentParser(description="Run the hello server")
+    parser = argparse.ArgumentParser(description="Run the findpi server")
     parser.add_argument(
         "--reset",
         action="store_true",

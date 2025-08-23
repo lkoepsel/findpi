@@ -1,12 +1,12 @@
 [Unit]
-Description=Ping a known server (hello_ip.txt) with hostname and IP address (3 times per boot)
+Description=Ping a known server (findpi_ip.txt) with hostname and IP address (3 times per boot)
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
 User=root
-ExecStart=/usr/bin/python /usr/bin/hello.py
+ExecStart=/usr/bin/python /usr/bin/findpi.py
 ExecStopPost=/bin/bash -c "sudo mount -o remount,rw /boot/firmware && sudo cp /tmp/findpi.log /boot/firmware/ "
 Restart=no
 StandardOutput=journal
